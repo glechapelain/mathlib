@@ -756,9 +756,9 @@ namespace {
 		for_each(sPolygons.begin(), sPolygons.end(), [timeInc](shared_ptr<Polygon>& obj) {
 			obj->pos += obj->vel * timeInc;
 			obj->orientation += obj->rotationSpeed * timeInc;
-			obj->transformation.setRow(0, float3D(cos(obj->orientation), -sin(obj->orientation), 0));
-			obj->transformation.setRow(1, float3D(sin(obj->orientation), cos(obj->orientation), 0));
-			obj->transformation.setRow(2, float3D(0, 0, 1.f));
+			obj->transformation.setRow(0, float3D(  cos(obj->orientation), sin(obj->orientation), 0));
+			obj->transformation.setRow(1, float3D(- sin(obj->orientation), cos(obj->orientation), 0));
+			obj->transformation.setRow(2, float3D(  0, 0, 1.f));
 			});
 
 		///// next check collisions ///////////////////////
@@ -870,6 +870,11 @@ namespace {
 
 				float3D side(curRadius * cos(angle), curRadius * sin(angle));
 				sPolygons[i]->setVertex(&vert - &polydef.vertPolarCoordinate[0], side);
+				auto obj(sPolygons[i]);
+				obj->transformation.setRow(0, float3D(cos(obj->orientation), sin(obj->orientation), 0));
+				obj->transformation.setRow(1, -float3D(sin(obj->orientation), cos(obj->orientation), 0));
+				obj->transformation.setRow(2, float3D(0, 0, 1.f));
+
 			}
 			sPolygons[i]->color = { (unsigned)std::rand() % 250, (unsigned)std::rand() % 250, (unsigned)std::rand() % 250 };
 			sPolygons[i]->setSphere();
