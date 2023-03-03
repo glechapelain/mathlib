@@ -52,8 +52,19 @@ namespace {
 	};
 	eCollisionMode CollisionType = eCollisionMode::eSphere;
 
-	size_t PolyCount{ 2 };  // number of polygons to launch. 
-
+	const struct {
+		vector<pair<float, float>> vertPolarCoordinate;
+		float3D pos, vel;
+		float rotationVelocity;
+	} defpolys[] = { { { pair<float, float>( 1, 100),
+					     pair<float, float>( 2, 80 ),
+					     pair<float, float>( 4, 90 ),
+					     pair<float, float>( 5, 80 ),
+					     pair<float, float>( 6, 80 ) }, float3D(202.68, 173.4 ), float3D(80.43, 67.5), 1 },
+					 { { pair<float, float>( 1, 100),
+					     pair<float, float>( 4, 90 ),
+					     pair<float, float>( 6, 80 ) }, float3D(289.086, 88.21), float3D(80.43, -67.5), -.7 } };
+	constexpr size_t PolyCount(sizeof defpolys / sizeof *defpolys);
 	const unsigned frameRate = 30; // 30 frame per second is the frame rate.
 	const int timeSpan = 1000 / frameRate; // milliseconds
 	const double timeInc = (double)timeSpan * 0.001; // time increment in seconds
@@ -61,6 +72,11 @@ namespace {
 	size_t WinWidth{ 800 }, WinHeight{ 600 };
 
 	///////////////////// physics stuff ///////////////////
+	float3D contactPoint;
+	float3D normal;
+	bool pointSet = false;
+	bool normalSet = false;
+
 	struct AABB
 	{// pos is center of AABB, extent is half length extend in each direction
 		float3D pos{}, extend{};
@@ -394,7 +410,6 @@ namespace {
 	int Menu(void)
 	{
 		int r = eIdle, key;
-		unsigned oldPolyCount = PolyCount;
 		doResolve = true; // by default we do resolve collisions
 		while (r != eStop && r != eStart)
 		{
@@ -413,12 +428,6 @@ namespace {
 				break;
 			case FSKEY_DOWN:
 				iSpeed = max(5.f, iSpeed - 20.f);
-				break;
-			case FSKEY_RIGHT:
-				++PolyCount;
-				break;
-			case FSKEY_LEFT:
-				PolyCount = max(0, PolyCount - 1);
 				break;
 			case FSKEY_S:
 				CollisionType = eCollisionMode::eSphere;
@@ -674,12 +683,10 @@ namespace {
 			}
 		}
 
+		pointSet = false;
+		normalSet = false;
 		if (do_collide)
 		{
-			float3D contactPoint;
-			float3D normal;
-			bool pointSet = false;
-			bool normalSet = false;
 
 			for (int i = 0; i < sPolygons.size(); i++)
 			{
@@ -698,8 +705,10 @@ namespace {
 				if (1 == total_colliding)
 				{
 					// normal = <-
-					float3D segment = poly.vertices[(points[0] + 1) % poly.nSides] - poly.vertices[points[0]];
+					float3D segment = ( poly.pos + poly.transformation * poly.vertices[(points[0] + 1) % poly.nSides] )
+									- ( poly.pos + poly.transformation * poly.vertices[points[0]]					  );
 					normal = float3D(-segment.y, segment.x);
+					normal /= normal.Length();
 					normalSet = true;
 				}
 				if (2 == total_colliding)
@@ -707,18 +716,19 @@ namespace {
 					if ((points[0] + 1) == points[1])
 					{
 						pointSet = true;
-						contactPoint = poly.vertices[points[1]];
+						contactPoint = poly.pos + poly.transformation * poly.vertices[points[1]];
 					}
 					else if(poly.colliding[poly.nSides - 1] && poly.colliding[0])
 					{
 						pointSet = true;
-						contactPoint = poly.vertices[0];
+						contactPoint = poly.pos + poly.transformation * poly.vertices[0];
 					}
 				}
 			}
 
 			if (normalSet && pointSet)
 			{
+				if (doResolve) {
 				float3D v1_prime = -sPolygons[0]->vel;
 				float3D v2_prime = -sPolygons[1]->vel;
 
@@ -731,7 +741,7 @@ namespace {
 				sPolygons[0]->rotationSpeed = w1_prime;
 				sPolygons[1]->rotationSpeed = w2_prime;
 			}
-
+			}
 		}
 	}
 
@@ -812,6 +822,24 @@ namespace {
 			else
 				DrawCollisionGeo(*poly);
 		}
+		static float size_normal = 10.f;
+		if (normalSet && pointSet)
+		{
+			float3D pt1 = contactPoint;
+			float3D pt2 = contactPoint + normal * size_normal;
+			//float3D pt1(50, 50);
+			//	float3D pt2(60, 60);
+
+			//glLineWidth(1);
+			glBegin(GL_LINES);
+			glColor3ub(0, 0, 0);
+
+			glVertex2d(pt1.x, pt1.y);
+			glVertex2d(pt2.x, pt2.y);
+
+			glEnd();
+		}
+
 		////  swap //////////
 		FsSwapBuffers();
 	}
@@ -829,23 +857,19 @@ namespace {
 
 		for (int i = 0; i < PolyCount; ++i)
 		{
+			auto const &polydef(defpolys[i]);
 			float rad = radius * (1. + float(std::rand() % PolyCount) / float(PolyCount));
-			float cX = width / 2 + (i - PolyCount / 2) * std::rand() % xdist;
-			float cY = height / 2 + (i - PolyCount / 2) * std::rand() % ydist;
-			unsigned nSides = std::rand() % 3 + 3;
-			float angle = float(std::rand() % 60) / 180.f * PI;
-			float speed = iSpeed * (1.f + float(std::rand() % PolyCount) / float(PolyCount));
-			float vx = speed * cos(angle);
-			float vy = speed * sin(angle);
-			sPolygons.push_back(make_shared<Polygon>(float3D(cX, cY), float3D(vx, vy), nSides, angle));
-			printf("Polygon: nSides=%d. Center(%f, %f)\n", nSides, cX, cY);
-			float curRadius{ 2.f * rad };
+			unsigned nSides = polydef.vertPolarCoordinate.size();
+			sPolygons.push_back(make_shared<Polygon>(polydef.pos, polydef.vel, polydef.vertPolarCoordinate.size(), polydef.rotationVelocity));
 			for (int j = 0; j < nSides; j++)
 			{
+				pair<float, float> const &vert(polydef.vertPolarCoordinate[j]);
+
+				const float angle	 (vert.first );
+				const float curRadius(vert.second);
+
 				float3D side(curRadius * cos(angle), curRadius * sin(angle));
-				sPolygons[i]->setVertex(j, side);
-				float angleInc = std::rand() % (360 / (sPolygons[i]->nSides - 1));
-				angle += angleInc * PI / 180.f;
+				sPolygons[i]->setVertex(&vert - &polydef.vertPolarCoordinate[0], side);
 			}
 			sPolygons[i]->color = { (unsigned)std::rand() % 250, (unsigned)std::rand() % 250, (unsigned)std::rand() % 250 };
 			sPolygons[i]->setSphere();
