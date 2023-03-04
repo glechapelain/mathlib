@@ -55,15 +55,16 @@ namespace {
 	const struct {
 		vector<pair<float, float>> vertPolarCoordinate;
 		float3D pos, vel;
+		float rotation;
 		float rotationVelocity;
 	} defpolys[] = { { { pair<float, float>( 1, 100),
 					     pair<float, float>( 2, 80 ),
 					     pair<float, float>( 4, 90 ),
 					     pair<float, float>( 5, 80 ),
-					     pair<float, float>( 6, 80 ) }, float3D(202.68, 173.4 ), float3D(80.43, 67.5), 1 },
+					     pair<float, float>( 6, 80 ) }, float3D(195.212677, 151.169327), float3D(-80.43, -67.5), -0.308457941, -1 },
 					 { { pair<float, float>( 1, 100),
 					     pair<float, float>( 4, 90 ),
-					     pair<float, float>( 6, 80 ) }, float3D(289.086, 88.21), float3D(80.43, -67.5), -.7 } };
+					     pair<float, float>( 6, 80 ) }, float3D(262.598, 108.94), float3D(-80.43, 67.5), 0.215983137, .7 } };
 	constexpr size_t PolyCount(sizeof defpolys / sizeof *defpolys);
 	const unsigned frameRate = 30; // 30 frame per second is the frame rate.
 	const int timeSpan = 1000 / frameRate; // milliseconds
@@ -76,6 +77,8 @@ namespace {
 	float3D normal;
 	bool pointSet = false;
 	bool normalSet = false;
+
+	bool pause = true;
 
 	struct AABB
 	{// pos is center of AABB, extent is half length extend in each direction
@@ -728,6 +731,24 @@ namespace {
 
 			if (normalSet && pointSet)
 			{
+				static float size_normal = 10.f;
+				if (normalSet && pointSet)
+				{
+					float3D pt1 = contactPoint;
+					float3D pt2 = contactPoint + normal * size_normal;
+					//float3D pt1(50, 50);
+					//	float3D pt2(60, 60);
+
+					//glLineWidth(1);
+					glBegin(GL_LINES);
+					glColor3ub(0, 0, 0);
+
+					glVertex2d(pt1.x, pt1.y);
+					glVertex2d(pt2.x, pt2.y);
+
+					glEnd();
+				}
+
 				if (doResolve) {
 				float3D v1_prime = -sPolygons[0]->vel;
 				float3D v2_prime = -sPolygons[1]->vel;
@@ -754,8 +775,10 @@ namespace {
 	{
 		////////////Next update Polys positions //////////////////
 		for_each(sPolygons.begin(), sPolygons.end(), [timeInc](shared_ptr<Polygon>& obj) {
-			obj->pos += obj->vel * timeInc;
-			obj->orientation += obj->rotationSpeed * timeInc;
+			if(!pause){
+				obj->pos += obj->vel * timeInc;
+				obj->orientation += obj->rotationSpeed * timeInc;
+			}
 			obj->transformation.setRow(0, float3D(  cos(obj->orientation), sin(obj->orientation), 0));
 			obj->transformation.setRow(1, float3D(- sin(obj->orientation), cos(obj->orientation), 0));
 			obj->transformation.setRow(2, float3D(  0, 0, 1.f));
@@ -822,23 +845,6 @@ namespace {
 			else
 				DrawCollisionGeo(*poly);
 		}
-		static float size_normal = 10.f;
-		if (normalSet && pointSet)
-		{
-			float3D pt1 = contactPoint;
-			float3D pt2 = contactPoint + normal * size_normal;
-			//float3D pt1(50, 50);
-			//	float3D pt2(60, 60);
-
-			//glLineWidth(1);
-			glBegin(GL_LINES);
-			glColor3ub(0, 0, 0);
-
-			glVertex2d(pt1.x, pt1.y);
-			glVertex2d(pt2.x, pt2.y);
-
-			glEnd();
-		}
 
 		////  swap //////////
 		FsSwapBuffers();
@@ -871,8 +877,8 @@ namespace {
 				float3D side(curRadius * cos(angle), curRadius * sin(angle));
 				sPolygons[i]->setVertex(&vert - &polydef.vertPolarCoordinate[0], side);
 				auto obj(sPolygons[i]);
-				obj->transformation.setRow(0, float3D(cos(obj->orientation), sin(obj->orientation), 0));
-				obj->transformation.setRow(1, -float3D(sin(obj->orientation), cos(obj->orientation), 0));
+				obj->transformation.setRow(0, float3D( cos(obj->orientation), sin(obj->orientation), 0));
+				obj->transformation.setRow(1, float3D(-sin(obj->orientation), cos(obj->orientation), 0));
 				obj->transformation.setRow(2, float3D(0, 0, 1.f));
 
 			}
@@ -916,8 +922,6 @@ namespace {
 			if (key == FSKEY_ESC)
 				break;
 
-			renderScene();
-
 			checkEdgeCollision();
 
 			////// update time lapse /////////////////
@@ -930,6 +934,8 @@ namespace {
 			double inc = (double)(timediff) / (double)numOfIterations * 0.001;
 			for (int i = 0; i < numOfIterations; i++)
 				updatePhysics(inc);
+
+			renderScene();
 
 			//	printf("\inc=%f, numOfIterations=%d, timediff=%d", inc, numOfIterations, timediff);
 			while (timediff >= timeSpan / 3)
