@@ -921,6 +921,8 @@ namespace {
 			int key = FsInkey();
 			if (key == FSKEY_ESC)
 				break;
+			if (key == FSKEY_P)
+				pause = !pause;
 
 			checkEdgeCollision();
 
