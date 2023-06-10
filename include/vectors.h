@@ -347,7 +347,7 @@ public:
 
 	//Apply scalar operations.
 	Vector4d operator*(T s) { Vector4d tmp(*this); tmp.x *= s; tmp.y *= s; tmp.z *= s; tmp.w *= s;  return tmp; }
-	Vector4d operator/(T s) { Vector4d tmp(*this); tmp.x /= s; tmp.y /= s; tmp.z /= s tmp.w /= s;  return tmp; }
+	Vector4d operator/(T s) { Vector4d tmp(*this); tmp.x /= s; tmp.y /= s; tmp.z /= s; tmp.w /= s;  return tmp; }
 
 	//Returns the length of the vector from the origin.
 	double Length() const { return sqrt(x*x + y * y + z * z + w*w); }
