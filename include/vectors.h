@@ -80,6 +80,7 @@ public:
 using float2D = Vector2d<float>;
 template<class T> Vector2d<T> operator*(const T& s, const Vector2d<T>& v) { return Vector2d<T>(v) *= s; }
 template<class T> Vector2d<T> operator*(const Vector2d<T>& v, const T& s) { return Vector2d<T>(v) *= s; }
+template<class T> Vector2d<T> operator/(const Vector2d<T>& v, const T& s) { return Vector2d<T>(v) /= s; }
 
 template<class T> Vector2d<T>  operator-(const Vector2d<T>& v1, const Vector2d<T>& v2) { return Vector2d<T>(v1.x-v2.x, v1.y-v2.y); }
 template<class T> Vector2d<T>  operator+(const Vector2d<T>& v1, const Vector2d<T>& v2) { return Vector2d<T>(v1.x+v2.x, v1.y+v2.y); }
@@ -359,6 +360,7 @@ public:
 using float4D = Vector4d<float>;
 template<class T> Vector4d<T> operator*(const T& s, const Vector4d<T>& v) { return Vector4d<T>(v) *= s; }
 template<class T> Vector4d<T> operator*(const Vector4d<T>& v, const T& s) { return Vector4d<T>(v) *= s; }
+template<class T> Vector4d<T> operator/(const Vector4d<T>& v, const T& s) { return Vector4d<T>(v) /= s; }
 
 template<class T> Vector4d<T>  operator-(const Vector4d<T>& v1, const Vector4d<T>& v2) { return Vector4d<T>(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z, v1.w-v2.w); }
 template<class T> Vector4d<T>  operator+(const Vector4d<T>& v1, const Vector4d<T>& v2) { return Vector4d<T>(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, v1.w+ v2.w); }
