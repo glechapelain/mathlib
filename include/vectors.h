@@ -121,7 +121,7 @@ Vector2d<T> GetIntersect(const Vector2d<T>&aa, const Vector2d<T>& ab, const Vect
 	double denominator = (aa.x - ab.x)*(ba.y - bb.y) -
 		(aa.y - ab.y)*(ba.x - bb.x);
 
-	return Vector2d(pX / denominator, pY / denominator);
+	return Vector2d<T>(pX / denominator, pY / denominator);
 }
 
 template<typename T>
